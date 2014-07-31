@@ -1,7 +1,5 @@
 *.py[cod]
-
-# C extensions
-*.so
+.idea
 
 # Packages
 *.egg
@@ -30,7 +28,7 @@ nosetests.xml
 # Translations
 *.mo
 
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
+# tmp
+tmp
+*~
+.ipynb_checkpoints/
