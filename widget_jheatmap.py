@@ -18,24 +18,30 @@ class JHeatmap(widgets.DOMWidget):
                  rows: list=[],
                  cols: list=[],
                  init_config: str="",
-                 autodraw: bool=True,
+                 autoshow: bool=True,
+                 popup: bool=False,
                  *pargs,
                  **kwargs):
         """
 
 
+
+
+        :type popup: bool
+        :param popup:
         :type values_df: pandas.DataFrame
             :param values_df:
             :param rows:
             :param cols:
             :param init_config:
-            :param autodraw:
+            :param autoshow:
             :param pargs:
             :param kwargs:
             """
         widgets.DOMWidget.__init__(self, *pargs, **kwargs)
-        self._autodraw = autodraw
+        self._autoshow = autoshow
         self._js_loaded = False
+        self._popup = None
         values_df = self._primary_col(cols, values_df)
         values_df = self._primary_row(rows, values_df)
 
@@ -44,18 +50,17 @@ class JHeatmap(widgets.DOMWidget):
         values_df.to_csv(self._tmp_file_values, quoting=None, sep="\t", index=False, header=True)
         self._init_config = init_config
 
-        #print(values_df.columns)
-        #print(self._tmp_file_values)
-
-        if (autodraw):
-            self._draw()
-
-            #       def _ipython_display_(self, *pargs, **kwargs):
-
-            #        # Show the widget, then send the current state
-            #        widgets.DOMWidget._ipython_display_(self, *pargs, **kwargs)
-            #        self.send({'key': 'values', 'action': 'init', 'value': self._values})
-            #        self.send({'key': 'initData', 'action': 'init', 'value': self._initData})
+        if popup:
+            self._popup = widgets.PopupWidget()
+            self._popup.description = "JHeatmap"
+            self._popup.button_text = "Show heatmap"
+            self._popup.children = [self]
+            if autoshow:
+                self._popup.on_displayed(self.show())
+        else:
+            if autoshow:
+                display(self)
+            #display(popup)
 
     @staticmethod
     def _primary_row(rows, values_df) -> pandas.DataFrame:
@@ -91,27 +96,54 @@ class JHeatmap(widgets.DOMWidget):
         return TMP + "/" + tmp_base + filename
 
 
-    def dummy_message(self):
-        print("dummying")
-        self.send({"action" : "dummy_message"})
+    def exec_js(self, js):
 
-
-    def redraw(self):
         self.send({
-                     "action" : "draw",
-                     "value" : "{data : { values : new jheatmap.readers.TableHeatmapReader( { url : '" + self._tmp_file_values + "'} ) }}"
-                   })
+            "action": "exec",
+            "value": js
+        })
 
 
-    def _draw(self):
+    def _ipython_display_(self, **kwargs):
+        # Show the widget, then send the current state
+        widgets.DOMWidget._ipython_display_(self, **kwargs)
 
-        if (self._js_loaded == False):
+        if not self._autoshow:
+            return
+
+        if not self._js_loaded:
             self._js_loaded = True
             self._publish_js()
-        self.redraw()
+
+        print("display!")
+
+        init = "";
+        funcs = " heatmap.options.container[0]._heatmapInstance = heatmap; "
+        init += "init : function(heatmap) {" + funcs + "}"
+
+        self.send({
+            "action": "draw",
+            "value": "{data : { values : new jheatmap.readers.TableHeatmapReader( { url : '" + self._tmp_file_values + "'} ) }, " + init + " }"
+        })
+
+    def show(self):
+        self._autoshow = True
+        if self._popup is None:
+            self._ipython_display_()
+        else:
+            display(self._popup)
+            self._ipython_display_()
+            #display(self._popup.children[0])
+            #self._draw()
+
+    def redraw(self):
+        print("re-drawing!")
+        self._ipython_display_()
 
 
-    def _publish_js(self):
+
+    @staticmethod
+    def _publish_js():
         with open('./widget_jheatmap_loader.js', 'r') as f:
             display(Javascript(data=f.read()))
 

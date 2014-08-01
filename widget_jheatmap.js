@@ -11,29 +11,31 @@ function getJHeatmapWidgetInstance(WidgetManager) {
 		    this.has_drawn = false;
             this.$el.text("Hello jHeatmap!");
             this.setElement($('<div/>', {id: this.guid}));
-		    //this.custom_init();
 
 		},
-
-		custom_init: function() {
-		    // Wait for element to be added to the DOM
-            var that = this;
-            setTimeout(function() {
-                that.update();
-            }, 0);
-		},
-
 
 		on_msg: function(message){
 
-		    console.log("message received! : " + JSON.stringify(message));
+		    if (this.lastmessage == message) {
+		        // for some reason, the messages arrive twice
+		        return;
+		    }
+		    this.lastmessage = message;
+
+
+		    //console.log("message received! : " + JSON.stringify(message));
 
 		    var action = message.action;
+		    var value = message.value.replace("GUID", this.guid);
 
 		    if (action=='draw') {
-		       this._inputData = message.value
+		        this._inputData = value
+                this.update();
+		    } if (action=='exec') {
+	            var heatmap = $("#" + this.guid)[0]._heatmapInstance;
+                eval("(" + value + ")");
+                heatmap.drawer.paint();
 		    }
-		    this.update();
 		},
 
 		update: function(){

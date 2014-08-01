@@ -11,7 +11,7 @@ values_df.head()
 # In[16]:
 
 from widget_jheatmap import JHeatmap
-JHeatmap(values_df,rows=["samples"],cols=["symbol"], autodraw=False)
+JHeatmap(values_df,rows=["samples"],cols=["symbol"], autoshow=False)
 
 
 
