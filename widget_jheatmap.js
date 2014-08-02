@@ -10,7 +10,7 @@ function getJHeatmapWidgetInstance(WidgetManager) {
 		    this.model.on('msg:custom', this.on_msg, this);
 		    this.has_drawn = false;
             this.$el.text("Hello jHeatmap!");
-            this.setElement($('<div/>', {id: this.guid}));
+            this.setElement($('<div/>', {id: this.guid, style: "width:100%"}));
 
 		},
 
@@ -33,7 +33,14 @@ function getJHeatmapWidgetInstance(WidgetManager) {
                 this.update();
 		    } if (action=='exec') {
 	            var heatmap = $("#" + this.guid)[0]._heatmapInstance;
-                eval("(" + value + ")");
+	            value.split(";").forEach(function(value){
+	                cmd = value.trim();
+	                if (cmd.length < 2 || cmd.substring(0,7) != "heatmap") {
+	                    return;
+	                }
+	                console.log("executing: " + cmd)
+                    eval("(" + cmd + ")");
+	            });
                 heatmap.drawer.paint();
 		    }
 		},

@@ -18,28 +18,17 @@ class JHeatmap(widgets.DOMWidget):
                  rows: list=[],
                  cols: list=[],
                  init_config: str="",
-                 autoshow: bool=True,
-                 popup: bool=False,
-                 *pargs,
                  **kwargs):
         """
-
-
-
-
-        :type popup: bool
-        :param popup:
         :type values_df: pandas.DataFrame
             :param values_df:
             :param rows:
             :param cols:
             :param init_config:
-            :param autoshow:
-            :param pargs:
             :param kwargs:
             """
-        widgets.DOMWidget.__init__(self, *pargs, **kwargs)
-        self._autoshow = autoshow
+        super(JHeatmap, self).__init__(**kwargs)
+        self._popup_shown = False
         self._js_loaded = False
         self._popup = None
         values_df = self._primary_col(cols, values_df)
@@ -50,17 +39,6 @@ class JHeatmap(widgets.DOMWidget):
         values_df.to_csv(self._tmp_file_values, quoting=None, sep="\t", index=False, header=True)
         self._init_config = init_config
 
-        if popup:
-            self._popup = widgets.PopupWidget()
-            self._popup.description = "JHeatmap"
-            self._popup.button_text = "Show heatmap"
-            self._popup.children = [self]
-            if autoshow:
-                self._popup.on_displayed(self.show())
-        else:
-            if autoshow:
-                display(self)
-            #display(popup)
 
     @staticmethod
     def _primary_row(rows, values_df) -> pandas.DataFrame:
@@ -95,31 +73,35 @@ class JHeatmap(widgets.DOMWidget):
             os.mkdir(TMP)
         return TMP + "/" + tmp_base + filename
 
+    #def get_popup(self) -> widgets.PopupWidget:
+    #    if self._popup is None:
+    #        self._create_popup()
+    #    return self._popup
 
     def exec_js(self, js):
-
         self.send({
             "action": "exec",
             "value": js
         })
 
-
     def _ipython_display_(self, **kwargs):
         # Show the widget, then send the current state
+        #if self._popup is not None and not self._popup_shown:
+        #   print("popup display!")
+        #   self._popup_shown = True
+        #   display(self._popup)
+        #   return
+
         widgets.DOMWidget._ipython_display_(self, **kwargs)
-
-        if not self._autoshow:
-            return
-
         if not self._js_loaded:
             self._js_loaded = True
             self._publish_js()
 
-        print("display!")
-
-        init = "";
         funcs = " heatmap.options.container[0]._heatmapInstance = heatmap; "
-        init += "init : function(heatmap) {" + funcs + "}"
+        if len(self._init_config) > 0:
+            funcs += " " + self._init_config
+        init = "init : function(heatmap) {" + funcs + "}"
+
 
         self.send({
             "action": "draw",
@@ -127,23 +109,19 @@ class JHeatmap(widgets.DOMWidget):
         })
 
     def show(self):
-        self._autoshow = True
-        if self._popup is None:
-            self._ipython_display_()
-        else:
-            display(self._popup)
-            self._ipython_display_()
-            #display(self._popup.children[0])
-            #self._draw()
+        display(self)
 
-    def redraw(self):
-        print("re-drawing!")
-        self._ipython_display_()
-
+    def _create_popup(self):
+        self._popup = widgets.PopupWidget()
+        self._popup.description = "JHeatmap"
+        self._popup.button_text = "Show heatmap"
+        self._popup.children = [self]
+        #self._popup.on_displayed(self._ipython_display_)
 
 
     @staticmethod
     def _publish_js():
         with open('./widget_jheatmap_loader.js', 'r') as f:
             display(Javascript(data=f.read()))
+
 
